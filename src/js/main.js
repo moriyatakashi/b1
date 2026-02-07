@@ -52,8 +52,11 @@ function nes_rom_change(arraybuffer) {
 	document.getElementById("pause").disabled = true;
 
 
-	if(nes.Init())
+	if(nes.Init()) {
 		nes_start();
+		// ページ読み込み時にオーディオコンテキストをresumeを試みる
+		nes.webAudioContextResume();
+	}
 }
 
 // ローカル上のROMを読み込み
