@@ -167,4 +167,8 @@ window.onload = function() {
 
 	// 画面の高さに応じてcanvasサイズ変更
 	resize_canvas();
+
+	// 最初のROMを自動読み込み
+	var defaultRomUrl = document.getElementById("romlist").value;
+	read_url(defaultRomUrl, nes_rom_change);
 };
