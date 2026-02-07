@@ -1,0 +1,55 @@
+﻿<html lang="ja">
+<head>
+	<title>FaithJS</title>
+</head>
+<body>
+
+	<canvas id="mainCanvas" width="256" height="224" style="border:1px solid black;">
+		Unsupported CANVAS
+	</canvas>
+	<br />
+	ROM選択：
+	<select id="romlist">
+		<option value="./rom/megaari.nes">MegaAri</option>
+		<option value="./rom/nittori.nes">河童ニットリちゃん</option>
+		<option value="./rom/bad_apple_2_5.nes">Bad Apple!! PV-FC 2.5</option>
+		<option value="./rom/nestest.nes">nestest</option>
+	</select>
+	<button id="romload">ロード</button>
+	<br />
+	<br />
+
+	<span id="usefileapi">
+		ROMファイル（.nes）を選択または、ドラッグ＆ドロップすることで<br />
+		自分の持っているROMファイルも遊べます。<br />
+		<input type="file" id="file">
+	</span>
+	<br />
+	<br />
+
+	<button id="start">START</button><button id="pause">PAUSE</button><button id="reset">RESET</button>
+	<button id="fullscreen">FULL SCREEN</button>
+	<br />
+	<br />
+
+	操作方法<br />
+	<table>
+		<tr><td></td><td>1P</td><td>2P</td></tr>
+		<tr><td>A</td><td>Z</td><td>Num&nbsp;7</td></tr>
+		<tr><td>B</td><td>X</td><td>Num&nbsp;9</td></tr>
+		<tr><td>START</td><td>Enter</td><td></td></tr>
+		<tr><td>SELECT</td><td>Shift</td><td></td></tr>
+		<tr><td>UP</td><td>↑</td><td>Num&nbsp;8</td></tr>
+		<tr><td>DOWN</td><td>↓</td><td>Num&nbsp;2</td></tr>
+		<tr><td>LEFT</td><td>←</td><td>Num&nbsp;4</td></tr>
+		<tr><td>RIGHT</td><td>→</td><td>Num&nbsp;6</td></tr>
+	</table>
+
+	<br />
+	「Bad Apple!! PV-FC 2.5」「MegaAri」「河童ニットリちゃん」<br />
+	については私の制作物ではなく、<br />
+	<a href="https://littlelimit.net/fc.htm">Little Limit 門真 なむ</a>様の作成されたものを<br />
+	利用させていただいております。<br />
+	<script type="text/javascript" src="js/main.js"></script>
+</body>
+</html>
