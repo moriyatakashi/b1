@@ -3295,51 +3295,13 @@ NES.prototype._handleGamePad = function (player, pad) {
 
 
 NES.prototype.ReadWaveControl = function () {
-	var tmp = 0x00;
-	if(this.WaveCh1LengthCounter !== 0)
-		tmp |= 0x01;
-
-	if(this.WaveCh2LengthCounter !== 0)
-		tmp |= 0x02;
-
-	if(this.WaveCh3LengthCounter !== 0)
-		tmp |= 0x04;
-
-	if(this.WaveCh4LengthCounter !== 0)
-		tmp |= 0x08;
-
-	if(this.WaveCh5SampleCounter !== 0)
-		tmp |= 0x10;
-
-	tmp |= this.toIRQ & 0xC0;
-
-	this.toIRQ &= ~0x40;
-
-	return tmp;
+	// APU disabled: return neutral control value
+	return 0x00;
 };
 
 
 NES.prototype.WriteWaveControl = function () {
-	var tmp = this.IO2[0x15];
-
-	if((tmp & 0x01) !== 0x01)
-		this.WaveCh1LengthCounter = 0;
-
-	if((tmp & 0x02) !== 0x02)
-		this.WaveCh2LengthCounter = 0;
-
-	if((tmp & 0x04) !== 0x04)
-		this.WaveCh3LengthCounter = 0;
-
-	if((tmp & 0x08) !== 0x08)
-		this.WaveCh4LengthCounter = 0;
-
-	if((tmp & 0x10) !== 0x10) {
-		this.WaveCh5SampleCounter = 0;
-		this.toIRQ &= ~0x80;
-	} else if(this.WaveCh5SampleCounter === 0) {
-		this.SetCh5Delta();
-	}
+	// APU disabled: no-op
 };
 
 
@@ -3412,164 +3374,24 @@ NES.prototype.SetCh5Delta = function () {
 
 
 NES.prototype.ApuInit = function () {
-	this.WaveFrameSequence = 0;
-
-	this.WaveCh1LengthCounter = 0;
-	this.WaveCh1Envelope = 0;
-	this.WaveCh1EnvelopeCounter = 0;
-	this.WaveCh1Sweep = 0;
-	this.WaveCh1Frequency = 0;
-
-	this.WaveCh2LengthCounter = 0;
-	this.WaveCh2Envelope = 0;
-	this.WaveCh2EnvelopeCounter = 0;
-	this.WaveCh2Sweep = 0;
-	this.WaveCh2Frequency = 0;
-
-	this.WaveCh3LengthCounter = 0;
-	this.WaveCh3LinearCounter = 0;
-
-	this.WaveCh4LengthCounter = 0;
-	this.WaveCh4Envelope = 0;
-	this.WaveCh4EnvelopeCounter = 0;
-	this.WaveCh4Register = 1;
-	this.WaveCh4BitSequence = 0;
-
-	this.WaveCh5DeltaCounter = 0;
-	this.WaveCh5Register = 0;
-	this.WaveCh5SampleAddress = 0;
-	this.WaveCh5SampleCounter = 0;
-	this.WaveCh5Angle = -1;
-
-	this.ApuClockCounter = 0;
-
-	this.WaveFrameSequenceCounter = 0;
-
+	// APU disabled: initialize minimal state
 	this.WaveDatas = [];
-
-	this.ApuCpuClockCounter = 0;
-
-	this.EXSoundInit();
 };
 
 
 NES.prototype.Out_Apu = function () {
-	var all_out = 0;
-	var tmpWaveBaseCount2 = this.WaveBaseCount;
-	var tmpWaveBaseCount = tmpWaveBaseCount2 << 1;
-	var tmpIO2 = this.IO2;
-
-	// **** CH1 ****
-	if(this.WaveCh1LengthCounter !== 0 && this.WaveCh1Frequency > 3)
-		all_out += ((tmpIO2[0x00] & 0x10) === 0x10 ? (tmpIO2[0x00] & 0x0F) : this.WaveCh1EnvelopeCounter) * (((tmpWaveBaseCount / this.WaveCh1Frequency) & 0x1F) < this.WaveCh1_2DutyData[(tmpIO2[0x00] & 0xC0) >> 6] ? 1 : -1);
-
-	// **** CH2 ****
-	if(this.WaveCh2LengthCounter !== 0 && this.WaveCh2Frequency > 3)
-		all_out += ((tmpIO2[0x04] & 0x10) === 0x10 ? (tmpIO2[0x04] & 0x0F) : this.WaveCh2EnvelopeCounter) * (((tmpWaveBaseCount / this.WaveCh2Frequency) & 0x1F) < this.WaveCh1_2DutyData[(tmpIO2[0x04] & 0xC0) >> 6] ? 1 : -1);
-
-	// **** CH3 ****
-	var ch3freq = ((tmpIO2[0x0B] & 0x07) << 8) + tmpIO2[0x0A] + 1;
-	if(this.WaveCh3LengthCounter !== 0 && this.WaveCh3LinearCounter !== 0 && ch3freq > 3)
-		all_out += this.WaveCh3SequenceData[(tmpWaveBaseCount2 / ch3freq) & 0x1F];
-
-	// **** CH4 ****
-	var angle = (tmpWaveBaseCount / this.WaveCh4FrequencyData[tmpIO2[0x0E] & 0x0F]) | 0;
-	if(angle !== this.WaveCh4Angle) {
-		this.WaveCh4Register = (tmpIO2[0x0E] & 0x80) === 0x80 ?
-				(this.WaveCh4Register >> 1) | (((this.WaveCh4Register & 0x0040) <<  8) ^ ((this.WaveCh4Register & 0x0001) << 14)) :
-				(this.WaveCh4Register >> 1) | (((this.WaveCh4Register & 0x0002) << 13) ^ ((this.WaveCh4Register & 0x0001) << 14));
-		this.WaveCh4Angle = angle;
-	}
-	if(this.WaveCh4LengthCounter !== 0 && (this.WaveCh4Register & 0x0001) === 0x0000)
-		all_out += (tmpIO2[0x0C] & 0x10) === 0x10 ? (tmpIO2[0x0C] & 0x0F) : this.WaveCh4EnvelopeCounter;
-
-	// **** CH5 ****
-	if(this.WaveCh5SampleCounter !== 0) {
-		angle = (tmpWaveBaseCount2 / this.WaveCh5FrequencyData[tmpIO2[0x10] & 0x0F]) & 0x1F;
-
-		if(this.WaveCh5Angle !== angle) {
-			var ii = this.WaveCh5Angle;
-			var jj = 0;
-			if(ii !== -1) {
-				jj = angle;
-				if(jj < ii)
-					jj += 32;
-			}
-			this.WaveCh5Angle = angle;
-
-			for(; ii<jj; ii++){
-				if((this.WaveCh5SampleCounter & 0x0007) === 0) {
-					if(this.WaveCh5SampleCounter !== 0){
-						this.WaveCh5Register = this.ROM[(this.WaveCh5SampleAddress >> 13) + 2][this.WaveCh5SampleAddress & 0x1FFF];
-						this.WaveCh5SampleAddress++;
-						this.CPUClock += 4;
-					}
-				}
-
-				if(this.WaveCh5SampleCounter !== 0) {
-					if((this.WaveCh5Register & 0x01) === 0x00) {
-						if(this.WaveCh5DeltaCounter > 1)
-							this.WaveCh5DeltaCounter -= 2;
-					} else {
-						if(this.WaveCh5DeltaCounter < 126)
-							this.WaveCh5DeltaCounter += 2;
-					}
-					this.WaveCh5Register >>= 1;
-					this.WaveCh5SampleCounter--;
-				}
-			}
-		}
-
-		if(this.WaveCh5SampleCounter === 0) {
-			if((tmpIO2[0x10] & 0x40) === 0x40)
-				this.SetCh5Delta();
-			else
-				this.toIRQ |= tmpIO2[0x10] & 0x80;
-		}
-	}
-	return (all_out + this.WaveCh5DeltaCounter) << 5;
+	// APU disabled: always return silence
+	return 0;
 };
 
 
 NES.prototype.WaveFrameSequencer = function (clock) {
-	this.WaveFrameSequenceCounter += 240 * clock;
-	if(this.WaveFrameSequenceCounter >= this.MainClock) {
-		this.WaveFrameSequenceCounter -= this.MainClock;
-
-		if((this.IO2[0x17] & 0x80) === 0x00) {
-			this.WaveCh1_2_4_Envelope_WaveCh3_Linear();
-			if(this.WaveFrameSequence === 1 || this.WaveFrameSequence === 3)
-				this.WaveCh1_2_3_4_Length_WaveCh1_2_Sweep();
-			if(this.WaveFrameSequence === 3 && (this.IO2[0x17] & 0x40) === 0x00) {
-				this.toIRQ |= 0x40;
-			}
-			this.WaveFrameSequence = ++this.WaveFrameSequence & 0x03;
-		} else {
-			if(this.WaveFrameSequence !== 4)
-				this.WaveCh1_2_4_Envelope_WaveCh3_Linear();
-			if(this.WaveFrameSequence === 0 || this.WaveFrameSequence === 2)
-				this.WaveCh1_2_3_4_Length_WaveCh1_2_Sweep();
-			this.WaveFrameSequence = ++this.WaveFrameSequence % 5;
-		}
-	}
+	// APU disabled: no-op
 };
 
 
 NES.prototype.ApuRun = function () {
-	this.WaveBaseCount = (this.WaveBaseCount + this.CPUClock) % this.MainClock;
-
-	this.WaveFrameSequencer(this.CPUClock);
-
-	this.Mapper.EXSoundSync(this.CPUClock);
-
-	this.ApuClockCounter += this.WaveSampleRate * this.CPUClock;
-	while(this.ApuClockCounter >= this.MainClock) {
-		this.ApuClockCounter -= this.MainClock;
-		if(this.canAudioContext && this.WaveOut) {
-			this.WaveDatas.push(this.Mapper.OutEXSound(this.Out_Apu()));
-			this.WebAudioGainNode.gain.value = this.WaveVolume;
-		}
-	}
+	// APU disabled: no-op
 };
 
 
