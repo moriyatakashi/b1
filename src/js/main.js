@@ -42,8 +42,6 @@ function nes_rom_change(arraybuffer) {
 	// Initialize and start the NES; do not touch absent UI elements
 	if(nes.Init()) {
 		nes_start();
-		// ページ読み込み時にオーディオコンテキストをresumeを試みる
-		try { nes.webAudioContextResume(); } catch (e) { /* ignore */ }
 	}
 }
 
@@ -77,12 +75,7 @@ var initialize_dom_events = function() {
 	// Only keep resize handling and audio resume hook; UI elements removed from HTML.
 	window.addEventListener('resize', resize_canvas);
 
-	var ontouchendEventName = typeof window.document.ontouchend !== 'undefined' ? 'touchend' : 'mouseup';
-	var resume_audio_func = function () {
-		try { nes.webAudioContextResume(); } catch (e) { /* ignore */ }
-		window.removeEventListener(ontouchendEventName, resume_audio_func);
-	};
-	window.addEventListener(ontouchendEventName, resume_audio_func);
+	// Audio removed: no resume handler required
 };
 
 // 初期化
