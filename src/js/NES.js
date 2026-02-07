@@ -175,29 +175,194 @@ var NES = function(canvas) {
 	//////////////////////////////////////////////////////////////////
 	// APU
 	//////////////////////////////////////////////////////////////////
-		// APU removed: keep minimal placeholders to satisfy interfaces used elsewhere
-		this.MainClock = 1789772.5;
-		this.ApuEnabled = false;
-		this.WaveDatas = [];
-		this.ApuClockCounter = 0;
-		this.ApuCpuClockCounter = 0;
+
+	//TODO: APU周りを調べる
+	this.MainClock = 1789772.5;
+	this.WaveOut = true;
+	this.WaveDatas = [];
+	this.WaveBaseCount = 0;
+	this.WaveSampleRate = 24000;
+	this.WaveFrameSequence = 0;
+	this.WaveFrameSequenceCounter = 0;
+	this.WaveVolume = 0.5;
+
+	this.WaveCh1LengthCounter = 0;
+	this.WaveCh1Envelope = 0;
+	this.WaveCh1EnvelopeCounter = 0;
+	this.WaveCh1Sweep = 0;
+	this.WaveCh1Frequency = 0;
+
+	this.WaveCh2LengthCounter = 0;
+	this.WaveCh2Envelope = 0;
+	this.WaveCh2EnvelopeCounter = 0;
+	this.WaveCh2Sweep = 0;
+	this.WaveCh2Frequency = 0;
+
+	this.WaveCh3LengthCounter = 0;
+	this.WaveCh3LinearCounter = 0;
+
+	this.WaveCh4Angle = -1;
+	this.WaveCh4LengthCounter = 0;
+	this.WaveCh4Envelope = 0;
+	this.WaveCh4EnvelopeCounter = 0;
+	this.WaveCh4Register = 0;
+	this.WaveCh4BitSequence = 0;
+	this.WaveCh4Angle = 0;
+
+	this.WaveCh5Angle = -1;
+	this.WaveCh5DeltaCounter = 0;
+	this.WaveCh5Register = 0;
+	this.WaveCh5SampleAddress = 0;
+	this.WaveCh5SampleCounter = 0;
+
+	this.ApuClockCounter = 0;
+
+	this.WaveLengthCount = [
+	0x0A, 0xFE, 0x14, 0x02, 0x28, 0x04, 0x50, 0x06,
+	0xA0, 0x08, 0x3C, 0x0A, 0x0E, 0x0C, 0x1A, 0x0E,
+	0x0C, 0x10, 0x18, 0x12, 0x30, 0x14, 0x60, 0x16,
+	0xC0, 0x18, 0x48, 0x1A, 0x10, 0x1C, 0x20, 0x1E];
+
+	this.WaveCh1_2DutyData = [4, 8, 16, 24];
+
+	this.WaveCh3SequenceData = [
+	  15,  13,  11,  9,   7,   5,   3,   1,
+	  -1,  -3,  -5, -7,  -9, -11, -13, -15,
+	 -15, -13, -11, -9,  -7,  -5,  -3,  -1,
+	   1,   3,   5,  7,   9,  11,  13,  15];
+
+	this.WaveCh4FrequencyData = [
+	0x004, 0x008, 0x010, 0x020,
+	0x040, 0x060, 0x080, 0x0A0,
+	0x0CA, 0x0FE, 0x17C, 0x1FC,
+	0x2FA, 0x3F8, 0x7F2, 0xFE4];
+
+	this.WaveCh5FrequencyData = [
+	0x1AC, 0x17C, 0x154, 0x140,
+	0x11E, 0x0FE, 0x0E2, 0x0D6,
+	0x0BE, 0x0A0, 0x08E, 0x080,
+	0x06A, 0x054, 0x048, 0x036];
+
+	this.WebAudioCtx = null;
+	this.WebAudioJsNode = null;
+	this.WebAudioGainNode = null;
+	this.WebAudioBufferSize = 4096;
+
+	this.ApuCpuClockCounter = 0;
+
+		// Disable audio: force no AudioContext and no audio nodes.
 		this.canAudioContext = false;
+		this.WaveOut = false;
 		this.WebAudioCtx = null;
 		this.WebAudioJsNode = null;
 		this.WebAudioGainNode = null;
-		this.WebAudioBufferSize = 0;
+		this.WaveSampleRate = 24000;
 
 
-/* **** EX Sound (removed) **** */
-	// EX sound chips removed to reduce footprint. keep minimal placeholders.
-	this.FDS_WAVE_REG = [];
-	this.FDS_LFO_REG = [];
-	this.FDS_REG = [];
-	this.MMC5_REG = [];
-	this.VRC6_REG = [];
-	this.N163_RAM = [];
-	this.AY_REG = [];
- 	this.AY_Env_Pattern = [[0]];
+/* **** EX Sound **** */
+	/* FDS */
+	this.FDS_WAVE_REG = new Array(0x40);
+	this.FDS_LFO_REG = new Array(0x20);
+	this.FDS_REG = new Array(0x10);
+	this.FDS_LFO_DATA = [0, 1, 2, 4, 0, -4, -2, -1];
+	//this.FDS_LFO_DATA = [0, 1, 2, 3, -4, -3, -2, -1];//<--
+
+	this.FDS_WaveIndexCounter = 0;
+	this.FDS_WaveIndex = 0;
+
+	this.FDS_LFOIndexCounter = 0;
+	this.FDS_LFOIndex = 0;
+	this.FDS_REGAddress = 0;
+
+	this.FDS_VolumeEnvCounter = 0;
+	this.FDS_VolumeEnv = 0;
+
+	this.FDS_SweepEnvCounter = 0;
+	this.FDS_SweepEnv = 0;
+	this.FDS_SweepBias = 0;
+
+	this.FDS_Volume = 0;
+
+	/* MMC5 */
+	this.MMC5_FrameSequenceCounter = 0;
+	this.MMC5_FrameSequence = 0;
+	this.MMC5_REG = new Array(0x20);
+	this.MMC5_Ch = new Array(2);
+	this.MMC5_Level = 0;
+
+	/* VRC6 */
+	this.VRC6_REG = new Array(12);
+	this.VRC6_Ch3_Counter = 0;
+	this.VRC6_Ch3_index = 0;
+	this.VRC6_Level = 0;
+
+	/* N163 */
+	this.N163_ch_data = new Array(8);
+	this.N163_RAM = new Array(128);
+	this.N163_Address = 0x00;
+	this.N163_ch = 0;
+	this.N163_Level = 0;
+	this.N163_Clock = 0;
+
+	/* AY-3-8910 */
+	this.AY_ClockCounter = 0;
+	this.AY_REG = new Array(16);
+	this.AY_Noise_Seed = 0x0001;
+	this.AY_Noise_Angle = 0;
+	this.AY_Env_Counter = 0;
+	this.AY_Env_Index = 0;
+	this.AY_REG_Select = 0x00;
+	this.AY_Level = 0;
+
+	this.AY_Env_Pattern = [
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	 15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	 15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	 15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0],
+	[15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,
+	 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,
+	 15,15,15,15,15,15,15,15,15,15,15,15,15,15,15,15],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	 15,14,13,12,11,10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+	  0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15],
+	[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
 
 	this.AY_Env_Volume = [    0,   16,   23,   32,
 				 45,   64,   90,  128,
@@ -305,7 +470,7 @@ NES.prototype.Init = function () {
 	// PRGROM と CHRROMを読み込み
 	this.StorageInit();
 	this.PpuInit();
-	// APU removed: no initialization
+	this.ApuInit();
 
 	// Mapper を読み込み
 	if(!this.MapperSelect()) {
@@ -372,18 +537,95 @@ NES.prototype.Pause = function () {
 	return false;
 };
 
-NES.prototype.EXSoundInit = function () {
-	// EX sound chips removed
+NES.prototype.Reset = function () {
+	if(this.Mapper !== null) {
+		this.Pause();
+		this.PpuInit();
+		this.ApuInit();
+		this.Mapper.Init();
+		this.CpuReset();
+		this.Start();
+		return true;
+	}
+	return false;
 };
 
-NES.prototype.Init_FDS = function () { /* removed */ };
-NES.prototype.Init_MMC5 = function () { /* removed */ };
-NES.prototype.Init_VRC6 = function () { /* removed */ };
-NES.prototype.Init_N163 = function () { /* removed */ };
-NES.prototype.Init_AY = function () { /* removed */ };
+/* **************************************************************** */
+/* NES CPU
+/* **************************************************************** */
+
+NES.prototype.CpuInit = function () {
+	// 各種レジスタ
+	this.A = 0;
+	this.X = 0;
+	this.Y = 0;
+	this.S = 0xFD; // 11111101
+	this.P = 0x34; // 00110100
+
+	// RESET割り込みにより PC の下位バイトを$FFFCから、上位バイトを$FFFDからフェッチ
+	this.PC = this.Get16(this.IRQ_RESET_ADDR);
+
+	// 割り込み
+	this.toNMI = false;
+	this.toIRQ = 0x00;
+
+	//TODO: why?
+	this.Set(0x0008, 0xF7);
+	this.Set(0x0009, 0xEF);
+	this.Set(0x000A, 0xDF);
+	this.Set(0x000F, 0xBF);
+};
+
+NES.prototype.CpuRun = function () {
+	// 画面を描画したかどうか
+	this.DrawFlag = false;
+
+	// 1フレーム1描画。描画するまでCPU, APU, PPUをrun
+	while(!this.DrawFlag) {
+		if(this.toNMI) {
+			// NMI割り込み
+			this.NMI();
+			this.toNMI = false;
+		}
+		// ステータスレジスタにIRQ割り込み禁止フラグが立ってなければ
+		else if((this.P & 0x04) === 0x00 && this.toIRQ !== 0x00) { // 0x04 = 0b0100
+			// IRQ割り込み
+			this.IRQ();
+		}
+
+		var opcode = this.Get(this.PC++);
+		this.CPUClock += this.CycleTable[opcode];
+		this.Mapper.CPUSync(this.CPUClock);
+		this.PpuRun();
+		this.ApuRun();
+		this.CPUClock = 0;
+		this.ExecuteOpCode(opcode);
+	}
+};
 
 NES.prototype.ExecuteOpCode = function (opcode) {
 	switch(opcode){
+		case 0xA1://LDA XIND
+			this.LDA(this.GetAddressIndirectX());
+			break;
+		case 0xA5://LDA ZP
+			this.LDA(this.GetAddressZeroPage());
+			break;
+		case 0xA9://LDA IMM
+			this.LDA(this.GetAddressImmediate());
+			break;
+		case 0xAD://LDA ABS
+			this.LDA(this.GetAddressAbsolute());
+			break;
+		case 0xB1://LDA INDY
+			this.LDA(this.GetAddressIndirectY());
+			break;
+		case 0xB5://LDA ZPX
+			this.LDA(this.GetAddressZeroPageX());
+			break;
+		case 0xB9://LDA ABSY
+			this.LDA(this.GetAddressAbsoluteY());
+			break;
 		case 0xBD://LDA ABSX
 			this.LDA(this.GetAddressAbsoluteX());
 			break;
@@ -2581,15 +2823,51 @@ NES.prototype.Get = function (address) {
 				// 拡張ROM
 				return this.Mapper.ReadLow(address);
 			}
-			// APU removed: Only handle joypad reads; otherwise return default
+
+			// Registers(Mostly APU)
 			switch (address) {
+				case 0x4000: // 矩形波制御レジスタ #1
+				case 0x4001: // 矩形波制御レジスタ #2
+				case 0x4002: // 矩形波周波数値レジスタ #1
+				case 0x4003: // 矩形波周波数値レジスタ #2
+				case 0x4004: // 矩形波制御レジスタ #1
+				case 0x4005: // 矩形波制御レジスタ #2
+				case 0x4006: // 矩形波周波数値レジスタ #1
+				case 0x4007: // 矩形波周波数値レジスタ #2
+				case 0x4008: // 三角波制御レジスタ #1
+				case 0x4009: // 三角波制御レジスタ #2
+				case 0x400A: // 三角波周波数値レジスタ #1
+				case 0x400B: // 三角波周波数値レジスタ #2
+				case 0x400C: // ノイズ制御レジスタ #1
+				case 0x400D: // ノイズ制御レジスタ #2
+				case 0x400E: // 周波数値レジスタ #1
+				case 0x400F: // 周波数値レジスタ #2
+				case 0x4010: // PCM 制御レジスタ #1
+				case 0x4011: // PCM 音量制御レジスタ
+				case 0x4012: // PCM アドレスレジスタ
+				case 0x4013: // PCM データ長レジスタ
+				case 0x4014: // SPRDMA (W) スプライト DMA
+				case 0x4015: // SNDCNT (RW) サウンド制御レジスタ
+					return this.ReadWaveControl();
 				case 0x4016:
+					// PAD I/O Register(1P)
 					return this.ReadJoyPadRegister1();
 				case 0x4017:
+					// PAD I/O Register(2P)
 					return this.ReadJoyPadRegister2();
-				default:
-					return 0x40;
+				case 0x4018:
+				case 0x4019:
+				case 0x401A:
+				case 0x401B:
+				case 0x401C:
+				case 0x401D:
+				case 0x401E:
+				case 0x401F:
 			}
+
+			// サウンドのドキュメントによると、
+			// 0x40 が返ってくる確率が高いらしい
+			return 0x40;
 		case 0x6000:
 			// 拡張RAM
 			// セーブ用RAMを読み込み
@@ -2661,21 +2939,75 @@ NES.prototype.Set = function (address, data) {
 			}
 			return;
 		case 0x4000:
-			// Registers (0x4000 - 0x401F): APU removed.
+			// Registers(Mostly APU)
 			if(address < 0x4020) {
-				// keep IO2 for compatibility but ignore sound-related writes
+				// APU Registers
+				// TODO: why?
 				this.IO2[address & 0x00FF] = data;
-				switch(address) {
-					case 0x4014: // SPRDMA (W) - OAM DMA
+				switch (address) {
+					case 0x4000: // 矩形波制御レジスタ #1
+					case 0x4001: // 矩形波制御レジスタ #2
+					case 0x4002: // 矩形波周波数値レジスタ #1
+						this.WriteCh1Length0();
+						return;
+					case 0x4003: // 矩形波周波数値レジスタ #2
+						this.WriteCh1Length1();
+						return;
+					case 0x4004: // 矩形波制御レジスタ #1
+					case 0x4005: // 矩形波制御レジスタ #2
+					case 0x4006: // 矩形波周波数値レジスタ #1
+						this.WriteCh2Length0();
+						return;
+					case 0x4007: // 矩形波周波数値レジスタ #2
+						this.WriteCh2Length1();
+						return;
+					case 0x4008: // 三角波制御レジスタ #1
+						this.WriteCh3LinearCounter();
+						return;
+					case 0x4009: // 三角波制御レジスタ #2
+					case 0x4010: // PCM 制御レジスタ #1
+					case 0x400A: // 三角波周波数値レジスタ #1
+					case 0x400B: // 三角波周波数値レジスタ #2
+						this.WriteCh3Length1();
+						return;
+					case 0x400C: // ノイズ制御レジスタ #1
+					case 0x400D: // ノイズ制御レジスタ #2
+					case 0x400E: // 周波数値レジスタ #1
+					case 0x400F: // 周波数値レジスタ #2
+						this.WriteCh4Length1();
+						return;
+					case 0x4010: // PCM 制御レジスタ #1
+						this.WriteCh5DeltaControl();
+						return;
+					case 0x4011: // PCM 音量制御レジスタ
+						this.WriteCh5DeltaCounter();
+						return;
+					case 0x4012: // PCM アドレスレジスタ
+					case 0x4013: // PCM データ長レジスタ
+					case 0x4014: // SPRDMA (W) スプライト DMA
+						// PPU OAMDMA
 						this.StartDMA(data);
 						return;
+					case 0x4015: // SNDCNT (RW) サウンド制御レジスタ
+						this.WriteWaveControl();
+						return;
 					case 0x4016:
+						// PAD I/O Register(1P)
 						this.WriteJoyPadRegister1(data);
 						return;
-					default:
-						// ignore sound register writes
+					case 0x4017:
+						// PAD I/O Register(2P)
 						return;
+					case 0x4018:
+					case 0x4019:
+					case 0x401A:
+					case 0x401B:
+					case 0x401C:
+					case 0x401D:
+					case 0x401E:
+					case 0x401F:
 				}
+				return;
 			}
 			// 拡張ROM
 			this.Mapper.WriteLow(address, data);
