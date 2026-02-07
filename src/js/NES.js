@@ -250,18 +250,13 @@ var NES = function(canvas) {
 
 	this.ApuCpuClockCounter = 0;
 
-	window.AudioContext = window.AudioContext || window.webkitAudioContext;
-	this.canAudioContext = typeof window.AudioContext !== "undefined";
-
-	if(this.canAudioContext) {
-		this.WebAudioCtx = new window.AudioContext();
-		this.WebAudioJsNode = this.WebAudioCtx.createScriptProcessor(this.WebAudioBufferSize, 1, 1);
-		this.WebAudioJsNode.onaudioprocess = this.WebAudioFunction.bind(this);
-		this.WebAudioGainNode = this.WebAudioCtx.createGain();
-		this.WebAudioJsNode.connect(this.WebAudioGainNode);
-		this.WebAudioGainNode.connect(this.WebAudioCtx.destination);
-		this.WaveSampleRate = this.WebAudioCtx.sampleRate;
-	}
+		// Disable audio: force no AudioContext and no audio nodes.
+		this.canAudioContext = false;
+		this.WaveOut = false;
+		this.WebAudioCtx = null;
+		this.WebAudioJsNode = null;
+		this.WebAudioGainNode = null;
+		this.WaveSampleRate = 24000;
 
 
 /* **** EX Sound **** */
@@ -3296,27 +3291,7 @@ NES.prototype._handleGamePad = function (player, pad) {
 /* NES APU
 /* **************************************************************** */
 
-NES.prototype.WebAudioFunction = function (e) {
-	var output = e.outputBuffer.getChannelData(0);
-
-	var i;
-	var data;
-	if(this.WaveDatas.length === 0) {
-		data = new Float32Array(this.WebAudioBufferSize);
-		for(i=0; i<this.WebAudioBufferSize; i++)
-			data[i] = 0.0;
-	} else {
-		var len = this.WaveDatas.length > this.WebAudioBufferSize ? this.WebAudioBufferSize : this.WaveDatas.length;
-		data = new Float32Array(len);
-		for(i=0; i<len; i++)
-			data[i] = this.WaveDatas[i] / (128 * 16);
-		this.WaveDatas = this.WaveDatas.slice(len);
-
-		if(this.WaveDatas.length >= this.WebAudioBufferSize * 2)
-			this.WaveDatas = this.WaveDatas.slice(this.WebAudioBufferSize * 2);
-	}
-	output.set(data);
-};
+// WebAudioFunction removed — audio disabled in this build.
 
 
 NES.prototype.ReadWaveControl = function () {
