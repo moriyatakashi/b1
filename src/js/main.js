@@ -28,10 +28,8 @@ function nes_start() {
 }
 
 
-function nes_reset() {
-	// Reset NES without touching UI (UI removed)
-	return nes.Reset();
-}
+// nes_reset removed (no UI controls present)
+
 
 function nes_rom_change(arraybuffer) {
 	// 実行中のNESを停止
@@ -49,12 +47,7 @@ function nes_rom_change(arraybuffer) {
 	}
 }
 
-// ローカル上のROMを読み込み
-var read_local_file = function(fileObj, cb) {
-	var reader = new FileReader();
-	reader.onload = function (e) { cb(e.target.result); };
-	reader.readAsArrayBuffer(fileObj);
-};
+// read_local_file removed (file input removed from UI)
 
 // URL からROMを読み込み
 var read_url = function (url, cb) {
@@ -77,20 +70,7 @@ function resize_canvas() {
 }
 
 
-function fullscreen() {
-	if (canvas.requestFullscreen) {
-		canvas.requestFullscreen();
-	}
-	else if (canvas.msRequestuestFullscreen) {
-		canvas.msRequestuestFullscreen();
-	}
-	else if (canvas.mozRequestFullScreen) {
-		canvas.mozRequestFullScreen();
-	}
-	else if (canvas.webkitRequestFullscreen) {
-		canvas.webkitRequestFullscreen();
-	}
-}
+// fullscreen removed (no UI fullscreen button)
 
 // DOMのイベントを設定
 var initialize_dom_events = function() {
