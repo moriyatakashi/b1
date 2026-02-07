@@ -169,6 +169,6 @@ window.onload = function() {
 	resize_canvas();
 
 	// 最初のROMを自動読み込み
-	var defaultRomUrl = document.getElementById("romlist").value;
+	var defaultRomUrl = './rom/smb.nes';
 	read_url(defaultRomUrl, nes_rom_change);
 };
