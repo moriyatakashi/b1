@@ -17,26 +17,20 @@ window.onkeydown = function(e) { nes.handleKeyDown(e); };
 window.onkeyup   = function(e) { nes.handleKeyUp(e); };
 
 function nes_pause() {
-	if(nes.Pause()) {
-		document.getElementById("pause").disabled = true;
-		document.getElementById("start").disabled = false;
-	}
+	// Pause NES without touching UI (UI removed)
+	return nes.Pause();
 }
 
 
 function nes_start() {
-	if(nes.Start()) {
-		document.getElementById("pause").disabled = false;
-		document.getElementById("start").disabled = true;
-	}
+	// Start NES without touching UI (UI removed)
+	return nes.Start();
 }
 
 
 function nes_reset() {
-	if(nes.Reset()) {
-		document.getElementById("pause").disabled = false;
-		document.getElementById("start").disabled = true;
-	}
+	// Reset NES without touching UI (UI removed)
+	return nes.Reset();
 }
 
 function nes_rom_change(arraybuffer) {
@@ -47,15 +41,11 @@ function nes_rom_change(arraybuffer) {
 		console.error("Can't get rom data (perhaps you don't set ArrayBuffer arguments or it's not nes rom format)");
 		return;
 	}
-
-	document.getElementById("start").disabled = true;
-	document.getElementById("pause").disabled = true;
-
-
+	// Initialize and start the NES; do not touch absent UI elements
 	if(nes.Init()) {
 		nes_start();
 		// ページ読み込み時にオーディオコンテキストをresumeを試みる
-		nes.webAudioContextResume();
+		try { nes.webAudioContextResume(); } catch (e) { /* ignore */ }
 	}
 }
 
@@ -104,62 +94,14 @@ function fullscreen() {
 
 // DOMのイベントを設定
 var initialize_dom_events = function() {
-	if(typeof window.FileReader !== "undefined") {
-		// ドラッグ&ドロップでROM読み込み
-		window.addEventListener("dragenter",
-			function (e) {
-				e.preventDefault();
-			}, false);
-
-		window.addEventListener("dragover",
-			function (e) {
-				e.preventDefault();
-			}, false);
-
-		window.addEventListener("drop",
-			function (e) {
-				e.preventDefault();
-				read_local_file(e.dataTransfer.files[0], nes_rom_change);
-			}, false);
-
-		// input type="file" から ROM読み込み
-		document.getElementById("file").addEventListener("change",
-			function (e) {
-				read_local_file(e.target.files[0], nes_rom_change);
-			}, false);
-
-		// プルダウンから ROM読み込み
-		document.getElementById("romload").addEventListener("click",
-			function (e) {
-				e.preventDefault();
-
-				// ROM の場所
-				var url = document.getElementById("romlist").value;
-
-				read_url(url, nes_rom_change);
-			}, false);
-
-		document.getElementById("pause").addEventListener("click", nes_pause, false);
-		document.getElementById("start").addEventListener("click", nes_start, false);
-		document.getElementById("reset").addEventListener("click", nes_reset, false);
-
-		document.getElementById("fullscreen").addEventListener("click", fullscreen, false);
-
-		document.getElementById("start").disabled = true;
-		document.getElementById("pause").disabled = true;
-	}
-
-	// 画面の高さに応じてcanvasサイズ変更
+	// Only keep resize handling and audio resume hook; UI elements removed from HTML.
 	window.addEventListener('resize', resize_canvas);
 
-	// Chrome ではイベント発生してから resume しないと音が再生されない。
-	// よってマウスクリック時に resume を設定
 	var ontouchendEventName = typeof window.document.ontouchend !== 'undefined' ? 'touchend' : 'mouseup';
 	var resume_audio_func = function () {
-		nes.webAudioContextResume();
+		try { nes.webAudioContextResume(); } catch (e) { /* ignore */ }
 		window.removeEventListener(ontouchendEventName, resume_audio_func);
 	};
-
 	window.addEventListener(ontouchendEventName, resume_audio_func);
 };
 
